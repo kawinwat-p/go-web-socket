@@ -1,6 +1,6 @@
 <div align="center">
 
-# go-fiber-template
+# bn-survey-point
 
 ![img](https://cdn.discordapp.com/attachments/372372440334073859/1216723412244893738/go_1.gif?ex=66016cfb&is=65eef7fb&hm=76c9538616341d981031c54ade56cbeee7eadc96c71d64bbaa6f85cc60436b40&)
 

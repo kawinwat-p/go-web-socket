@@ -1,18 +1,18 @@
 package gateways
 
 import (
-	service "go-fiber-template/src/services"
+	service "bn-survey-point/src/services"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type HTTPGateway struct {
-	UserService service.IUsersService
+	surveyPointService service.ISurveyPointService
 }
 
-func NewHTTPGateway(app *fiber.App, users service.IUsersService) {
+func NewHTTPGateway(app *fiber.App, service service.ISurveyPointService) {
 	gateway := &HTTPGateway{
-		UserService: users,
+		surveyPointService: service,
 	}
 
 	GatewayUsers(*gateway, app)

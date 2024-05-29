@@ -1,27 +1,29 @@
 package main
 
 import (
-	"go-fiber-template/configuration"
-	ds "go-fiber-template/domain/datasources"
-	repo "go-fiber-template/domain/repositories"
-	gw "go-fiber-template/src/gateways"
-	"go-fiber-template/src/middlewares"
-	sv "go-fiber-template/src/services"
+	"bn-survey-point/configuration"
+	ds "bn-survey-point/domain/datasources"
+	repo "bn-survey-point/domain/repositories"
+	gw "bn-survey-point/src/gateways"
+	"bn-survey-point/src/middlewares"
+	sv "bn-survey-point/src/services"
+	"log"
 	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/joho/godotenv"
 )
 
 func main() {
 
-	// // // remove this before deploy ###################
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Fatal("Error loading .env file")
-	// }
-	// /// ############################################
+	// // remove this before deploy ###################
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+	/// ############################################
 
 	app := fiber.New(configuration.NewFiberConfiguration())
 	middlewares.Logger(app)
@@ -29,10 +31,14 @@ func main() {
 	app.Use(cors.New())
 
 	mongodb := ds.NewMongoDB(10)
+	redisdb := ds.NewRedisConnection()
 
 	userMongo := repo.NewUsersRepository(mongodb)
+	alertRepo := repo.NewAlertMessageRepositories(mongodb)
+	redisRepo := repo.NewRedisRepository(redisdb)
 
-	sv0 := sv.NewUsersService(userMongo)
+
+	sv0 := sv.NewSurveyPointService(userMongo,alertRepo,redisRepo)
 
 	gw.NewHTTPGateway(app, sv0)
 

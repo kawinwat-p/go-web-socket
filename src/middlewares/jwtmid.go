@@ -1,8 +1,8 @@
 package middlewares
 
 import (
+	"bn-survey-point/domain/entities"
 	"fmt"
-	"go-fiber-template/domain/entities"
 	"log"
 	"net/http"
 	"os"

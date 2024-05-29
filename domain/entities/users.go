@@ -11,3 +11,10 @@ type UserDataFormat struct {
 	Username string `json:"username" bson:"username,omitempty"`
 	Email    string `json:"email" bson:"email,omitempty"`
 }
+
+type UserProfile struct {
+    UID      string `json:"uid" bson:"uid"`
+    UserName string `json:"username" bson:"username"`
+    Email    string `json:"email" bson:"email,omitempty"`
+    Credits  int32  `json:"credits" bson:"credits"`
+}

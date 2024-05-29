@@ -1,16 +1,13 @@
 package repositories
 
 import (
+	. "bn-survey-point/domain/datasources"
+	"bn-survey-point/domain/entities"
 	"context"
-	. "go-fiber-template/domain/datasources"
-	"go-fiber-template/domain/entities"
 	"os"
-
-	fiberlog "github.com/gofiber/fiber/v2/log"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type usersRepository struct {
@@ -19,44 +16,74 @@ type usersRepository struct {
 }
 
 type IUsersRepository interface {
-	InsertNewUser(data *entities.NewUserBody) bool
-	FindAll() ([]entities.UserDataFormat, error)
+	UserExist(uid string) bool
+	AddCredits(uid string, credit int32) error
 }
 
 func NewUsersRepository(db *MongoDB) IUsersRepository {
 	return &usersRepository{
 		Context:    db.Context,
-		Collection: db.MongoDB.Database(os.Getenv("DATABASE_NAME")).Collection("test"),
+		Collection: db.MongoDB.Database(os.Getenv("DATABASE_NAME")).Collection("users"),
 	}
 }
 
-func (repo usersRepository) InsertNewUser(data *entities.NewUserBody) bool {
-	if _, err := repo.Collection.InsertOne(repo.Context, data); err != nil {
-		fiberlog.Errorf("Users -> InsertNewUser: %s \n", err)
+func (repo usersRepository) UserExist(uid string) bool {
+	var result bson.M
+
+	filter := bson.M{"uid": uid}
+
+	err := repo.Collection.FindOne(repo.Context, filter).Decode(&result)
+
+	if err != nil || result == nil {
 		return false
 	}
+
 	return true
 }
 
-func (repo usersRepository) FindAll() ([]entities.UserDataFormat, error) {
-	options := options.Find()
-	filter := bson.M{}
-	cursor, err := repo.Collection.Find(repo.Context, filter, options)
+func (repo usersRepository) AddCredits(uid string, credit int32) error {
+	filter := bson.M{"uid": uid}
+
+	_, err := repo.FindOneById(uid)
+
+	updated := bson.M{"$inc": bson.M{"credits": credit}}
+
 	if err != nil {
-		fiberlog.Errorf("Users -> FindAll: %s \n", err)
+		return err
+	}
+
+	_, err = repo.Collection.UpdateOne(repo.Context, filter, updated)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo usersRepository) FindOneById(uid string) (*entities.UserProfile, error) {
+	var bsonResult bson.M
+
+	var result entities.UserProfile
+
+	filter := bson.M{"uid": uid}
+
+	if err := repo.Collection.FindOne(repo.Context, filter).Decode(bsonResult); err != nil {
 		return nil, err
 	}
-	defer cursor.Close(repo.Context)
-	pack := make([]entities.UserDataFormat, 0)
-	for cursor.Next(repo.Context) {
-		var item entities.UserDataFormat
 
-		err := cursor.Decode(&item)
-		if err != nil {
-			continue
-		}
+	bsonByte, err := bson.Marshal(bsonResult)
 
-		pack = append(pack, item)
+	if err != nil {
+		return nil, err
 	}
-	return pack, nil
+
+	err = bson.Unmarshal(bsonByte, &result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+
 }
