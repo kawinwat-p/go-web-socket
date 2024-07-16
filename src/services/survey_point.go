@@ -1,12 +1,12 @@
 package services
 
 import (
-	"bn-survey-point/domain/entities"
-	"bn-survey-point/domain/repositories"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"websocketjingjing/domain/entities"
+	"websocketjingjing/domain/repositories"
 
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
@@ -17,10 +17,10 @@ type sheetApiClient struct {
 }
 
 type surveyPointService struct {
-	client   sheetApiClient
-	userRepo repositories.IUsersRepository
+	client           sheetApiClient
+	userRepo         repositories.IUsersRepository
 	alertMessageRepo repositories.IAlertMessageRepositories
-	redisrepo repositories.IRedisConnectionRepository
+	redisrepo        repositories.IRedisConnectionRepository
 }
 
 type ISurveyPointService interface {
@@ -30,10 +30,10 @@ type ISurveyPointService interface {
 
 func NewSurveyPointService(userRepo repositories.IUsersRepository, alertMessageRepo repositories.IAlertMessageRepositories, redisRepo repositories.IRedisConnectionRepository) ISurveyPointService {
 	return &surveyPointService{
-		client:   *NewSheetApiClient("credentials.json"),
-		userRepo: userRepo,
+		client:           *NewSheetApiClient("credentials.json"),
+		userRepo:         userRepo,
 		alertMessageRepo: alertMessageRepo,
-		redisrepo: redisRepo,
+		redisrepo:        redisRepo,
 	}
 }
 
@@ -83,7 +83,7 @@ func (sv surveyPointService) AddCredits() entities.ResponseModel {
 			if err != nil {
 				credit = 10000
 			}
-		}else{
+		} else {
 			credit = redisData.Teacher.Point
 		}
 		for i, row := range data {
@@ -102,11 +102,11 @@ func (sv surveyPointService) AddCredits() entities.ResponseModel {
 			}
 
 			if alreadyPaid == "จ่ายแล้ว" {
-				fmt.Println(uid+alreadyPaid)
+				fmt.Println(uid + alreadyPaid)
 				continue
 			} else if sv.userRepo.UserExist(uid) {
 				sv.userRepo.AddCredits(uid, credit)
-				fmt.Println("Adding",credit,"point to",uid)
+				fmt.Println("Adding", credit, "point to", uid)
 				users = append(users, uid)
 
 				if len(row) >= 14 {
@@ -117,7 +117,7 @@ func (sv surveyPointService) AddCredits() entities.ResponseModel {
 
 				data[i] = row
 			} else {
-				fmt.Println("User with",uid,"uid not found")
+				fmt.Println("User with", uid, "uid not found")
 				if len(row) >= 14 {
 					row[13] = "ไม่พบผู้ใช้งาน"
 				} else {
@@ -151,14 +151,14 @@ func (sv surveyPointService) AddCredits() entities.ResponseModel {
 
 }
 
-func (sv surveyPointService) SetAlertMessageRedis() error{
-	data,err := sv.alertMessageRepo.GetAll()
+func (sv surveyPointService) SetAlertMessageRedis() error {
+	data, err := sv.alertMessageRepo.GetAll()
 
 	if err != nil {
 		return err
 	}
 
-	dataJson, err := json.Marshal(data) 
+	dataJson, err := json.Marshal(data)
 
 	if err != nil {
 		return err

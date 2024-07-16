@@ -1,10 +1,10 @@
 package repositories
 
 import (
-	"bn-survey-point/domain/entities"
-	. "bn-survey-point/domain/datasources"
 	"context"
 	"os"
+	. "websocketjingjing/domain/datasources"
+	"websocketjingjing/domain/entities"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

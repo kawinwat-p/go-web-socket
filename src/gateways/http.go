@@ -1,7 +1,7 @@
 package gateways
 
 import (
-	service "bn-survey-point/src/services"
+	service "websocketjingjing/src/services"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -10,10 +10,18 @@ type HTTPGateway struct {
 	surveyPointService service.ISurveyPointService
 }
 
-func NewHTTPGateway(app *fiber.App, service service.ISurveyPointService) {
+type Server struct {
+	// socketService service.ISocketService
+	HubService    service.IHubService
+}
+
+func NewHTTPGateway(app *fiber.App, service service.ISurveyPointService, h service.IHubService) {
 	gateway := &HTTPGateway{
 		surveyPointService: service,
 	}
-
-	GatewayUsers(*gateway, app)
+	server := &Server{
+		// socketService: socketService,
+		HubService:    h,
+	}
+	GatewayUsers(*gateway, app, *server)
 }

@@ -1,12 +1,12 @@
 package middlewares
 
 import (
-	"bn-survey-point/domain/entities"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+	"websocketjingjing/domain/entities"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"

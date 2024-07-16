@@ -3,9 +3,9 @@ package repositories
 import (
 	"context"
 	"encoding/json"
-	"bn-survey-point/domain/datasources"
-	"bn-survey-point/domain/entities"
 	"log"
+	"websocketjingjing/domain/datasources"
+	"websocketjingjing/domain/entities"
 
 	"github.com/go-redis/redis/v8"
 )
