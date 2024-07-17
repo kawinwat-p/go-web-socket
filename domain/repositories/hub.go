@@ -48,7 +48,7 @@ func (h *Hub) JoinRoom(c *websocket.Conn, client entities.Client) {
 		Content:  client.Username + " has joined the room",
 		Username: client.Username,
 		RoomID:   client.RoomID,
-		Role: client.Role,
+		Role:     client.Role,
 	}
 
 	var (
@@ -135,7 +135,7 @@ func (h *Hub) ReadMessage(c *websocket.Conn, client entities.Client) (entities.M
 		Content:  string(msg),
 		Username: client.Username,
 		RoomID:   client.RoomID,
-		Role: client.Role,
+		Role:     client.Role,
 	}
 
 	return message, nil
@@ -167,13 +167,11 @@ func (h *Hub) GetClients(roomID string) *[]entities.ClientResponse {
 			Username: r.Username,
 			RoomID:   r.RoomID,
 		})
-
 	}
 	return &clients
 }
 
 func (h *Hub) GetRoom(roomID string) *entities.Room {
-
 	if _, ok := h.Rooms[roomID]; !ok {
 		return nil
 	}

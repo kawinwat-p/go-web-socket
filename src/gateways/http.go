@@ -6,22 +6,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type HTTPGateway struct {
-	surveyPointService service.ISurveyPointService
+type Gateway struct {
+	HubService service.IHubService
 }
 
-type Server struct {
-	// socketService service.ISocketService
-	HubService    service.IHubService
-}
-
-func NewHTTPGateway(app *fiber.App, service service.ISurveyPointService, h service.IHubService) {
-	gateway := &HTTPGateway{
-		surveyPointService: service,
+func NewHTTPGateway(app *fiber.App, h service.IHubService) {
+	gateway := &Gateway{
+		HubService: h,
 	}
-	server := &Server{
-		// socketService: socketService,
-		HubService:    h,
-	}
-	GatewayUsers(*gateway, app, *server)
+	GatewayUsers(*gateway, app)
 }

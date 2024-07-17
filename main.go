@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"websocketjingjing/configuration"
-	ds "websocketjingjing/domain/datasources"
 	repo "websocketjingjing/domain/repositories"
 	gw "websocketjingjing/src/gateways"
 	"websocketjingjing/src/middlewares"
@@ -30,8 +29,6 @@ func main() {
 	app.Use(cors.New())
 
 	app.Use("/ws", func(c *fiber.Ctx) error {
-		// IsWebSocketUpgrade returns true if the client
-		// requested upgrade to the WebSocket protocol.
 		if websocket.IsWebSocketUpgrade(c) {
 			c.Locals("allowed", true)
 			return c.Next()
@@ -39,21 +36,10 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	mongodb := ds.NewMongoDB(10)
-	redisdb := ds.NewRedisConnection()
-	
-
-	userMongo := repo.NewUsersRepository(mongodb)
-	alertRepo := repo.NewAlertMessageRepositories(mongodb)
-	redisRepo := repo.NewRedisRepository(redisdb)
-	// socketRepo := repo.NewSocketRepo()
 	hub := repo.NewHub()
+	sv1 := sv.NewHubService(hub)
 
-	sv0 := sv.NewSurveyPointService(userMongo, alertRepo, redisRepo)
-	// sv1 := sv.NewSocketService(socketRepo)
-	sv2 := sv.NewHubService(hub)
-
-	gw.NewHTTPGateway(app, sv0, sv2)
+	gw.NewHTTPGateway(app, sv1)
 
 	PORT := os.Getenv("DB_PORT_LOGIN")
 
