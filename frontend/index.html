@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@1.16.1/dist/full.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+        <dialog id="favDialog" class="w-1/2 rounded">
+            <form method="dialog" class="flex flex-col items-center justify-center gap-4">
+                <input type="text" id="userId" name="userId" class="input input-bordered w-full mb-4 text-white"
+                    placeholder="Enter user ID">
+                <input type="text" id="username" name="username" class="input input-bordered w-full mb-4 text-white"
+                    placeholder="Enter username" autofocus>
+                <button class="btn btn-primary w-full" onclick="joinRoom()">Join</button>
+                <button class="btn btn-primary w-full">Close</button>
+            </form>
+        </dialog>
+
+        <h1 class="text-2xl font-bold mb-4 text-black">WebSocket Chat</h1>
+        <div class="flex flex-col items-center justify-center">
+            <input type="text" id="name" name="name" class="input input-bordered w-full mb-4"
+                placeholder="Enter room name">
+            <input type="text" id="id" name="id" class="input input-bordered w-full mb-4" placeholder="Enter id">
+            <button onclick="createRoom()" class="btn btn-primary">Create Room</button>
+        </div>
+        <div class="flex flex-col items-center justify-center m-4">
+            <button onclick="showRooms()" class="btn btn-primary">Show Rooms</button>
+            <div class="border border-gray-300 w-full h-full overflow-y-scroll p-4 bg-white rounded-lg shadow-md m-4 flex gap-2"
+                id="display-rooms">
+
+            </div>
+        </div>
+        <!-- <button id="showModalJoin" class="btn btn-primary">Show me</button> -->
+    </div>
+
+    <script>
+        const showModalJoinRoom = () => {
+            document.getElementById("userId").value = userId;
+            favDialog.showModal();
+        }
+
+        const joinRoom = () => {
+            username = document.getElementById("username").value;
+            const userId = document.getElementById("userId").value;
+            window.location.href = "chat.html?userId=" + userId + "&username=" + username + "&room_id=" + roomId;
+
+        }
+
+        const createRoom = () => {
+            const name = document.getElementById("name").value;
+            const id = document.getElementById("id").value;
+            fetch("http://localhost:8080/api/ws/create_room", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: name,
+                    id: id,
+                }),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+        var roomId = "";
+        var userId = Math.floor(Math.random() * 1000);
+        var username = "";
+        const showRooms = () => {
+            fetch("http://localhost:8080/api/ws/get_rooms")
+                .then((response) => response.json())
+                .then((data) => {
+                    console.log(data);
+                    const displayRooms = document.getElementById("display-rooms");
+                    displayRooms.innerHTML = "";
+                    data.forEach((room) => {
+                        roomId = room.id;
+                        displayRooms.innerHTML += `<button onclick="showModalJoinRoom()" class="btn btn-primary">${room.name}</button>`;
+                    })
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                });
+        }
+        document.addEventListener("DOMContentLoaded", function () {
+            showRooms();
+        })
+    </script>
+
+
+</body>
+
+</html>

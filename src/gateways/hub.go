@@ -3,12 +3,13 @@ package gateways
 import (
 	"websocketjingjing/domain/entities"
 
+	"log"
+
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"log"
 )
 
-func (s Server) CreateRoom(ctx *fiber.Ctx) error {
+func (s Gateway) CreateRoom(ctx *fiber.Ctx) error {
 	var req entities.CreateRoomRequest
 	if err := ctx.BodyParser(&req); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(entities.ResponseMessage{Message: "invalid json body"})
@@ -27,7 +28,7 @@ func (s Server) CreateRoom(ctx *fiber.Ctx) error {
 	return ctx.Status(fiber.StatusOK).JSON(entities.ResponseModel{Message: "success"})
 }
 
-func (s Server) JoinRoom(c *websocket.Conn) {
+func (s Gateway) JoinRoom(c *websocket.Conn) {
 	log.Println(c.Locals("allowed"))  // true
 	log.Println(c.Params("room_id"))  // 123
 	log.Println(c.Query("v"))         // 1.0
@@ -49,11 +50,9 @@ func (s Server) JoinRoom(c *websocket.Conn) {
 	log.Printf("roomId: %s", roomId)
 
 	s.HubService.JoinRoom(c, *user)
-	// websocket.Conn bindings https://pkg.go.dev/github.com/fasthttp/websocket?tab=doc#pkg-index
-	// s.socketService.SocketTestService(c,roomId)
 }
 
-func (s Server) LeaveRoom(c *websocket.Conn) {
+func (s Gateway) LeaveRoom(c *websocket.Conn) {
 	log.Println(c.Locals("allowed"))  // true
 	log.Println(c.Params("room_id"))  // 123
 	log.Println(c.Query("v"))         // 1.0
@@ -73,32 +72,32 @@ func (s Server) LeaveRoom(c *websocket.Conn) {
 	s.HubService.LeaveRoom(c, *user)
 }
 
-// func (s Server) Boardcast(c *websocket.Conn) {
+// func (s Gateway) Boardcast(c *websocket.Conn) {
 // 	s.HubService.Boardcast(message)
 // }
 
-// func (s Server) WriteMessage(c *websocket.Conn) {
+// func (s Gateway) WriteMessage(c *websocket.Conn) {
 // 	s.HubService.WriteMessage(c,message)
 // }
 
-// func (s Server) ReadMessage(c *websocket.Conn) {
+// func (s Gateway) ReadMessage(c *websocket.Conn) {
 // 	s.HubService.ReadMessage(c, client)
 // }
 
-func (s Server) GetRooms(ctx *fiber.Ctx) error {
+func (s Gateway) GetRooms(ctx *fiber.Ctx) error {
 	rooms := s.HubService.GetRooms()
 
 	return ctx.Status(fiber.StatusOK).JSON(rooms)
 }
 
-func (s Server) GetClients(ctx *fiber.Ctx) error {
+func (s Gateway) GetClients(ctx *fiber.Ctx) error {
 	roomId := ctx.Query("roomId")
 	clients := s.HubService.GetClients(roomId)
 
 	return ctx.Status(fiber.StatusOK).JSON(clients)
 }
 
-func (s Server) GetRoom(ctx *fiber.Ctx) error {
+func (s Gateway) GetRoom(ctx *fiber.Ctx) error {
 	roomId := ctx.Query("roomId")
 	room := s.HubService.GetRoom(roomId)
 	if room == nil {

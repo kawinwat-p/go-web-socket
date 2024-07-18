@@ -31,11 +31,9 @@ func NewHubService(h repositories.IHub) IHubService {
 
 func (h *hubService) CreateRoom(room *entities.Room) error {
 	err := h.hub.CreateRoom(room)
-
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
