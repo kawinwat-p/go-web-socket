@@ -17,6 +17,8 @@
                     placeholder="Enter user ID">
                 <input type="text" id="username" name="username" class="input input-bordered w-full mb-4"
                     placeholder="Enter username" autofocus>
+                <input type="text" id="role" name="role" class="input input-bordered w-full mb-4"
+                    placeholder="Enter role">
                 <button class="btn btn-primary w-full" onclick="joinRoom()">Join</button>
                 <button class="btn btn-primary w-full">Close</button>
             </form>
@@ -48,7 +50,8 @@
         const joinRoom = () => {
             username = document.getElementById("username").value;
             const userId = document.getElementById("userId").value;
-            window.location.href = "chat.html?userId=" + userId + "&username=" + username + "&room_id=" + roomId;
+            const role = document.getElementById("role").value;
+            window.location.href = "chat2.html?userId=" + userId + "&username=" + username + "&room_id=" + roomId + "&role=" + role;
 
         }
 

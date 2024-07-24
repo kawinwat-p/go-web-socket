@@ -1,7 +1,10 @@
 package repositories
 
 import (
+	"errors"
+	"fmt"
 	"log"
+	"sync"
 	"websocketjingjing/domain/entities"
 
 	"github.com/gofiber/contrib/websocket"
@@ -9,139 +12,164 @@ import (
 
 type Hub struct {
 	Rooms map[string]*entities.Room
-	conns map[*websocket.Conn]bool
+	conns map[string]map[*websocket.Conn]bool
+	mu    sync.Mutex
+	// conns map[*websocket.Conn]bool
+	// Rooms map[string]map[*websocket.Conn]bool
 }
 
 type IHub interface {
 	CreateRoom(room *entities.Room) error
-	// Boardcast(message entities.Message)
-	JoinRoom(c *websocket.Conn, client entities.Client)
-	LeaveRoom(c *websocket.Conn, client entities.Client)
+	Boardcast(message []byte, roomId string)
+	JoinRoom(c *websocket.Conn, room *entities.Room)
+	LeaveRoom(c *websocket.Conn, roomId string)
 	// WriteMessage(c *websocket.Conn,message entities.Message)
 	// ReadMessage(c *websocket.Conn, client entities.Client)
 	GetRooms() *[]entities.RoomResponse
-	GetClients(RoomID string) *[]entities.ClientResponse
+	GetClients(roomID string) (*[]entities.ClientResponse, error)
 	GetRoom(roomID string) *entities.Room
 }
 
 func NewHub() IHub {
 	return &Hub{
+		// Rooms: make(map[string]*entities.Room),
+		// conns: make(map[*websocket.Conn]bool),
+		conns: make(map[string]map[*websocket.Conn]bool),
 		Rooms: make(map[string]*entities.Room),
-		conns: make(map[*websocket.Conn]bool),
 	}
 }
 
 func (h *Hub) CreateRoom(room *entities.Room) error {
+	// h.Rooms[room.ID] = room
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.Rooms[room.ID] = room
 	return nil
 }
 
-func (h *Hub) JoinRoom(c *websocket.Conn, client entities.Client) {
-	if _, ok := h.Rooms[client.RoomID]; ok {
-		room := h.Rooms[client.RoomID]
-		if _, ok := room.Clients[client.ID]; !ok {
-			room.Clients[client.ID] = &client
+func (h *Hub) JoinRoom(c *websocket.Conn, room *entities.Room) {
+	// message := &entities.Message{
+	// 	Content:  client.Username + " has joined the room",
+	// 	Username: client.Username,
+	// 	RoomID:   client.RoomID,
+	// 	Role:     client.Role,
+	// }
 
+	// var (
+	// 	// mt  int
+	// 	msg entities.Message
+	// 	err error
+	// )
+
+	// if err = h.WriteMessage(c, *message); err != nil {
+	// 	log.Println("write:", err)
+	// }
+
+	// for {
+	// 	// log.Println("read")
+	// 	if msg, err = h.ReadMessage(c, client); err != nil {
+	// 		log.Println("read:", err)
+	// 		break
+	// 	}
+	// 	log.Printf("recv: %s", msg)
+
+	// 	// ss := []byte("test")
+	// 	// c.WriteMessage(mt,ss)
+
+	// 	// if string(msg) == "test" {
+	// 	// 	c.WriteMessage(mt,[]byte("this is test message"))
+	// 	// }
+
+	// 	if err = h.WriteMessage(c, msg); err != nil {
+	// 		log.Println("write:", err)
+	// 		break
+	// 	}
+
+	// }
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, ok := h.Rooms[room.ID]; ok {
+		if _, ok := h.conns[room.ID]; !ok {
+			h.conns[room.ID] = make(map[*websocket.Conn]bool)
 		}
+		// h.conns[room.ID] = make(map[*websocket.Conn]struct{})
+		h.conns[room.ID][c] = true
+	} else {
+		fmt.Println("room not found")
 	}
-	message := &entities.Message{
-		Content:  client.Username + " has joined the room",
-		Username: client.Username,
-		RoomID:   client.RoomID,
-		Role:     client.Role,
-	}
+}
 
-	var (
-		// mt  int
-		msg entities.Message
-		err error
-	)
-
-	if err = h.WriteMessage(c, *message); err != nil {
-		log.Println("write:", err)
-	}
-
-	for {
-		// log.Println("read")
-		if msg, err = h.ReadMessage(c, client); err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("recv: %s", msg)
-
-		// ss := []byte("test")
-		// c.WriteMessage(mt,ss)
-
-		// if string(msg) == "test" {
-		// 	c.WriteMessage(mt,[]byte("this is test message"))
+func (h *Hub) LeaveRoom(c *websocket.Conn, roomId string) {
+	// if _, ok := h.Rooms[client.RoomID]; ok {
+	// 	room := h.Rooms[client.RoomID]
+	// 	if _, ok := room.Clients[client.ID]; ok {
+	// 		if len(h.Rooms[client.RoomID].Clients) != 0 {
+	// 			message := entities.Message{
+	// 				Content:  "user has left the room",
+	// 				RoomID:   client.RoomID,
+	// 				Username: client.Username,
+	// 			}
+	// 			h.WriteMessage(c, message)
+	// 		}
+	// 		delete(room.Clients, client.ID)
+	// 		c.Conn.Close()
+	// 	}
+	// }
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if _, ok := h.Rooms[roomId]; ok {
+		delete(h.conns[roomId], c)
+		// if len(h.Rooms[roomId]) == 0 {
+		// 	delete(h.Rooms, roomId)
 		// }
-
-		if err = h.WriteMessage(c, msg); err != nil {
-			log.Println("write:", err)
-			break
-		}
-
 	}
 }
 
-func (h *Hub) LeaveRoom(c *websocket.Conn, client entities.Client) {
-	if _, ok := h.Rooms[client.RoomID]; ok {
-		room := h.Rooms[client.RoomID]
-		if _, ok := room.Clients[client.ID]; ok {
-			if len(h.Rooms[client.RoomID].Clients) != 0 {
-				message := entities.Message{
-					Content:  "user has left the room",
-					RoomID:   client.RoomID,
-					Username: client.Username,
-				}
-				h.WriteMessage(c, message)
-			}
-			delete(room.Clients, client.ID)
-			c.Conn.Close()
+func (h *Hub) Boardcast(message []byte, roomId string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	fmt.Println(roomId)
+	for client := range h.conns[roomId] {
+		err := client.WriteMessage(websocket.TextMessage, message)
+		if err != nil {
+			log.Println(err)
+			continue
 		}
 	}
 }
 
-// func (h *Hub) Boardcast(message entities.Message) {
-// 	if _,ok := h.Rooms[message.RoomID]; !ok {
-// 		for _, client := range h.Rooms[message.RoomID].Clients {
-// 			client.Message <- &message
-// 			h.WriteMessage(client.Conn,message)
-// 		}
+// func (h *Hub) WriteMessage(c *websocket.Conn, message entities.Message) error {
+// 	if err := c.WriteJSON(message); err != nil {
+// 		log.Println("write:", err)
+// 		return err
 // 	}
-
+// 	return nil
 // }
 
-func (h *Hub) WriteMessage(c *websocket.Conn, message entities.Message) error {
-	if err := c.WriteJSON(message); err != nil {
-		log.Println("write:", err)
-		return err
-	}
-	return nil
-}
+// func (h *Hub) ReadMessage(c *websocket.Conn, client entities.Client) (entities.Message, error) {
+// 	var (
+// 		// mt  int
+// 		msg []byte
+// 		err error
+// 	)
+// 	if _, msg, err = c.ReadMessage(); err != nil {
+// 		log.Println("read:", err)
+// 		return entities.Message{}, err
+// 	}
 
-func (h *Hub) ReadMessage(c *websocket.Conn, client entities.Client) (entities.Message, error) {
-	var (
-		// mt  int
-		msg []byte
-		err error
-	)
-	if _, msg, err = c.ReadMessage(); err != nil {
-		log.Println("read:", err)
-		return entities.Message{}, err
-	}
+// 	message := entities.Message{
+// 		Content:  string(msg),
+// 		Username: client.Username,
+// 		RoomID:   client.RoomID,
+// 		Role:     client.Role,
+// 	}
 
-	message := entities.Message{
-		Content:  string(msg),
-		Username: client.Username,
-		RoomID:   client.RoomID,
-		Role:     client.Role,
-	}
-
-	return message, nil
-}
+// 	return message, nil
+// }
 
 func (h *Hub) GetRooms() *[]entities.RoomResponse {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	rooms := make([]entities.RoomResponse, 0)
 
 	for _, r := range h.Rooms {
@@ -154,27 +182,34 @@ func (h *Hub) GetRooms() *[]entities.RoomResponse {
 	return &rooms
 }
 
-func (h *Hub) GetClients(roomID string) *[]entities.ClientResponse {
+func (h *Hub) GetClients(roomID string) (*[]entities.ClientResponse, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	clients := make([]entities.ClientResponse, 0)
 
 	if _, ok := h.Rooms[roomID]; !ok {
-		return &clients
+		return nil, errors.New("room not exist")
 	}
 
-	for _, r := range h.Rooms[roomID].Clients {
+	room := h.Rooms[roomID]
+	for _, c := range room.Clients {
 		clients = append(clients, entities.ClientResponse{
-			ID:       r.ID,
-			Username: r.Username,
-			RoomID:   r.RoomID,
+			ID:       c.ID,
+			Username: c.Username,
+			RoomID:   c.RoomID,
 		})
 	}
-	return &clients
+
+	return &clients, nil
 }
 
 func (h *Hub) GetRoom(roomID string) *entities.Room {
+	h.mu.Lock()
+	defer h.mu.Unlock()
 	if _, ok := h.Rooms[roomID]; !ok {
 		return nil
 	}
+	room := h.Rooms[roomID]
 
-	return h.Rooms[roomID]
+	return room
 }

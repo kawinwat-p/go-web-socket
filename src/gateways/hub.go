@@ -1,6 +1,8 @@
 package gateways
 
 import (
+	"encoding/json"
+	"fmt"
 	"websocketjingjing/domain/entities"
 
 	"log"
@@ -92,7 +94,11 @@ func (s Gateway) GetRooms(ctx *fiber.Ctx) error {
 
 func (s Gateway) GetClients(ctx *fiber.Ctx) error {
 	roomId := ctx.Query("roomId")
-	clients := s.HubService.GetClients(roomId)
+	clients,err := s.HubService.GetClients(roomId)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(entities.ResponseMessage{Message: "clients not found"})
+	}
 
 	return ctx.Status(fiber.StatusOK).JSON(clients)
 }
@@ -105,3 +111,79 @@ func (s Gateway) GetRoom(ctx *fiber.Ctx) error {
 	}
 	return ctx.Status(fiber.StatusOK).JSON(room)
 }
+
+func (s Gateway) handleWebSocket(conn *websocket.Conn) {
+	// Get room name and username from the URL parameters
+	roomId := conn.Query("room_id")
+	userId := conn.Query("userId")
+	username := conn.Query("username")
+	role := conn.Query("role")
+	if role == "" {
+		role = "client"
+	}
+	
+	user := &entities.Client{
+		Conn:     conn,
+		ID:       userId,
+		RoomID:   roomId,
+		Username: username,
+		Role:     role,
+	}
+	fmt.Println(user.RoomID)
+	s.HubService.JoinRoom(conn, *user)
+	defer s.LeaveRoom(conn)
+	defer conn.Close()
+
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(fmt.Sprintf("Error: %s", err))
+			break
+		}
+		fmt.Println("Received:", string(msg))
+
+		// Create a JSON message including the username
+		// message := entities.Message{
+		// 	Content:   string(msg),
+		// 	Username:  username,
+		// 	Role:      role,
+		// }
+		// messageBytes, _ := json.Marshal(message)
+
+		message := map[string]string{
+			"username": username,
+			"message":  string(msg),
+			"role":     role,
+		}
+		messageBytes, _ := json.Marshal(message)
+
+		s.HubService.Boardcast(messageBytes,roomId)
+	}
+}
+
+// func(s Gateway) Roomhandle(c *websocket.Conn) {
+// 	var prevRooms []string // Store previous room names
+
+// 	for {
+// 		// Create a new message when there is a change in chatServer
+// 		rooms := s.HubService.GetRooms()
+
+// 		// Check for changes
+// 		if len(*rooms) != len(prevRooms) {
+// 			message := fiber.Map{
+// 				"rooms": rooms,
+// 			}
+// 			// Send the updated room list to the client
+// 			err := c.WriteJSON(message)
+// 			if err != nil {
+// 				log.Println(err)
+// 				break
+// 			}
+
+// 			prevRooms = rooms
+// 		}
+
+// 		// Wait for 1 second before checking again
+// 		time.Sleep(1 * time.Second)
+// 	}
+// }

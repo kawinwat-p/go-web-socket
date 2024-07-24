@@ -28,18 +28,26 @@ func main() {
 	app.Use(recover.New())
 	app.Use(cors.New())
 
-	app.Use("/ws", func(c *fiber.Ctx) error {
-		if websocket.IsWebSocketUpgrade(c) {
-			c.Locals("allowed", true)
-			return c.Next()
-		}
-		return fiber.ErrUpgradeRequired
-	})
+	// app.Use("/ws", func(c *fiber.Ctx) error {
+	// 	if websocket.IsWebSocketUpgrade(c) {
+	// 		c.Locals("allowed", true)
+	// 		return c.Next()
+	// 	}
+	// 	return fiber.ErrUpgradeRequired
+	// })
+
+	config := websocket.Config{
+		HandshakeTimeout:  0,             // No timeout for handshake
+		Origins:           []string{"*"}, // Allow all origins
+		EnableCompression: false,         // Disable compression
+		ReadBufferSize:    1024,
+		WriteBufferSize:   1024,
+	}
 
 	hub := repo.NewHub()
 	sv1 := sv.NewHubService(hub)
 
-	gw.NewHTTPGateway(app, sv1)
+	gw.NewHTTPGateway(app, sv1,config)
 
 	PORT := os.Getenv("DB_PORT_LOGIN")
 
